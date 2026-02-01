@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1T1M DASHBOARD</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        /* ดีไซน์ Dark Mode Neon */
+        body {
+            background-color: #0d0d0d;
+            font-family: 'Courier New', monospace;
+            color: #00ff41;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .status-box {
+            border: 1px solid #333;
+            background: #111;
+            padding: 15px;
+            width: 85%;
+            max-width: 400px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .btn {
+            background: transparent;
+            border: 2px solid;
+            padding: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            border-radius: 12px;
+            color: white;
+            text-transform: uppercase;
+        }
+        /* ปุ่ม SLOT 1 Neon ฟ้า */
+        .btn-slot1 { border-color: #00d2ff; color: #00d2ff; box-shadow: 0 0 10px #00d2ff inset; }
+        .btn-slot1:active { background: #00d2ff; color: black; box-shadow: 0 0 40px #00d2ff; }
+        
+        /* ปุ่ม SLOT 2 Neon ชมพู */
+        .btn-slot2 { border-color: #ff00de; color: #ff00de; box-shadow: 0 0 10px #ff00de inset; }
+        .btn-slot2:active { background: #ff00de; color: black; box-shadow: 0 0 40px #ff00de; }
+
+        .log { margin-top: 20px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <h1 style="text-shadow: 0 0 10px #fff;">PROJECT: 1T1M</h1>
+    
+    <div class="status-box">
+        SYSTEM: <span id="status-text" style="color: red; font-weight: bold;">CONNECTING...</span><br>
+        FEEDBACK: <span id="device-msg" style="color: yellow;">-</span>
+    </div>
+
+    <div class="container">
+        <button class="btn btn-slot1" onclick="sendCmd('1T1M_Project_Dev/slot1')">DISPENSE SLOT 1</button>
+        <button class="btn btn-slot2" onclick="sendCmd('1T1M_Project_Dev/slot2')">DISPENSE SLOT 2</button>
+    </div>
+
+    <div class="log" id="console-log">Initializing...</div>
+
+    <script>
+        // --- ตั้งค่า EMQX (Secure WebSocket) ---
+        const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
+        
+        const options = {
+            clientId: 'Web_' + Math.random().toString(16).substr(2, 8),
+            keepalive: 60,
+            clean: true
+        };
+
+        const client = mqtt.connect(brokerUrl, options);
+        const topicStatus = "1T1M_Project_Dev/status";
+
+        // เชื่อมต่อสำเร็จ
+        client.on('connect', () => {
+            console.log('Connected via EMQX!');
+            document.getElementById('status-text').innerText = "ONLINE";
+            document.getElementById('status-text').style.color = "#00ff41";
+            document.getElementById('console-log').innerText = "Connected to EMQX Broker";
+            client.subscribe(topicStatus);
+        });
+
+        // รับข้อความ
+        client.on('message', (topic, message) => {
+            if (topic === topicStatus) {
+                document.getElementById('device-msg').innerText = message.toString();
+            }
+        });
+
+        // ส่งคำสั่ง
+        function sendCmd(topic) {
+            if (client.connected) {
+                client.publish(topic, '1');
+                document.getElementById('console-log').innerText = "Sent command to " + topic;
+            } else {
+                alert("Wait for connection...");
+            }
+        }
+
+        // Error Handling
+        client.on('error', (err) => {
+            console.error('Error:', err);
+            document.getElementById('status-text').innerText = "ERROR";
+            document.getElementById('status-text').style.color = "red";
+        });
+    </script>
+
+</body>
+</html>
